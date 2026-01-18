@@ -44,6 +44,10 @@ const commands = [
 			},
 		],
 	},
+	{
+		name: 'help',
+		description: '顯示指令說明清單',
+	},
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);

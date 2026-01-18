@@ -2,8 +2,23 @@
 const { Client, Events, GatewayIntentBits, REST, Routes } = require('discord.js');
 // 引入 fs 以讀寫檔案
 const fs = require('fs');
+// 引入 express 建立健康檢查伺服器
+const express = require('express');
 // 引入 dotenv 以讀取 .env 檔案中的 Token
 require('dotenv').config();
+
+// === 建立一個簡單的 Web Server 給 Render 檢查 ===
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+    res.send('Discord Bot is running!');
+});
+
+app.listen(port, () => {
+    console.log(`Web server listening on port ${port}`);
+});
+// ============================================
 
 // 載入自訂指令資料
 let customCommands = {};
@@ -154,6 +169,21 @@ client.on(Events.InteractionCreate, async interaction => {
 
             await interaction.reply(`🗑️ 已成功移除指令 \`!${name}\`。`);
             return;
+        }
+
+        // === 處理 /help 指令 (顯示指令說明) ===
+        if (commandName === 'help') {
+            const helpMessage = 
+                `📚 **指令說明清單**\n\n` +
+                `**/ping** - 開始監控延遲 (機器人與 API)\n` +
+                `**/stop** - 停止 Ping 監控\n` +
+                `**/commsg [名稱] [回應]** - 新增自訂指令 (例如：\`/commsg hello 你好\`) \n` +
+                `**/rmcommsg [名稱]** - 移除自訂指令\n` +
+                `**/commsglist** - 列出目前所有的自訂指令\n` +
+                `**/help** - 顯示此說明清單\n\n` +
+                `💡 *提示：你也可以使用 \`!commsg\`、\`!rmcommsg\` 和 \`!commsglist\` 等文字指令喔！*`;
+
+            return interaction.reply({ content: helpMessage, ephemeral: true });
         }
     } catch (error) {
         console.error(`執行指令 ${commandName} 時發生錯誤:`, error);
