@@ -8,8 +8,8 @@
     "start": "node index.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "JiJiLoh",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "discord.js": "^14.25.1",
