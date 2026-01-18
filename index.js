@@ -56,13 +56,16 @@ client.on(Events.InteractionCreate, async interaction => {
     try {
         // === 處理 /ping 指令 ===
         if (commandName === 'ping') {
+            // 先告訴 Discord 我們收到了，請稍等 (避免 3 秒超時)
+            await interaction.deferReply();
+
             // 檢查是否已經在執行
             if (pingIntervals.has(interaction.user.id)) {
-                return interaction.reply({ content: '你已經有一個正在執行的監控！請先輸入 `/stop` 停止它。', ephemeral: true });
+                return interaction.editReply({ content: '你已經有一個正在執行的監控！請先輸入 `/stop` 停止它。' }); // 注意這裡不用 ephemeral，因為 deferReply 預設是公开的，除非 defer 時指定
             }
 
             // 發送初始訊息
-            await interaction.reply({ content: '開始監控延遲... (每 5 秒更新)', fetchReply: true });
+            await interaction.editReply({ content: '開始監控延遲... (每 5 秒更新)' });
 
             // 變數用來儲存上一次測量的機器人延遲
             let lastRoundtrip = 0;
@@ -110,26 +113,28 @@ client.on(Events.InteractionCreate, async interaction => {
 
         // === 處理 /stop 指令 ===
         if (commandName === 'stop') {
+             await interaction.deferReply();
             const interval = pingIntervals.get(interaction.user.id);
 
             if (interval) {
                 clearInterval(interval); // 停止計時器
                 pingIntervals.delete(interaction.user.id); // 從 Map 中移除
-                await interaction.reply('🛑 已停止 Ping 監控。');
+                await interaction.editReply('🛑 已停止 Ping 監控。');
             } else {
-                await interaction.reply({ content: '目前沒有正在執行的監控喔！', ephemeral: true });
+                await interaction.editReply({ content: '目前沒有正在執行的監控喔！' });
             }
             return;
         }
 
         // === 處理 /commsg 指令 (新增自訂指令) ===
         if (commandName === 'commsg') {
+            await interaction.deferReply();
             const name = interaction.options.getString('name').toLowerCase();
             const response = interaction.options.getString('response');
 
             // 簡單驗證：指令名稱必須符合 Discord 規範 (小寫字母、數字、-、_)
             if (!/^[\w-]+$/.test(name)) {
-                return interaction.reply({ content: '指令名稱無效！只能包含小寫字母、數字、底線(_)和連字號(-)。', ephemeral: true });
+                return interaction.editReply({ content: '指令名稱無效！只能包含小寫字母、數字、底線(_)和連字號(-)。' });
             }
 
             // 儲存到記憶體
@@ -138,44 +143,46 @@ client.on(Events.InteractionCreate, async interaction => {
             // 儲存到檔案
             fs.writeFileSync('./customCommands.json', JSON.stringify(customCommands, null, 2));
 
-            await interaction.reply(`✅ 成功新增指令！請輸入 \`!${name}\` 來測試，機器人將會回覆：${response}`);
+            await interaction.editReply(`✅ 成功新增指令！請輸入 \`!${name}\` 來測試，機器人將會回覆：${response}`);
             return;
         }
 
         // === 處理 /commsglist 指令 (列出所有指令) ===
         if (commandName === 'commsglist') {
+            await interaction.deferReply({ ephemeral: true }); // 這個列表可能很長，且是給個人看的，設為隱藏
             const commandList = Object.keys(customCommands);
 
             if (commandList.length === 0) {
-                return interaction.reply('目前沒有任何自訂指令喔！試試看 `/commsg` 新增一個吧。');
+                return interaction.editReply('目前沒有任何自訂指令喔！試試看 `/commsg` 新增一個吧。');
             }
 
             // 格式化輸出
             const description = commandList.map(name => `**!${name}** -> ${customCommands[name]}`).join('\n');
 
-            return interaction.reply({
-                content: `📋 **目前已有的自訂指令列表：**\n\n${description}`,
-                ephemeral: true 
+            return interaction.editReply({
+                content: `📋 **目前已有的自訂指令列表：**\n\n${description}`
             });
         }
 
         // === 處理 /rmcommsg 指令 (移除自訂指令) ===
         if (commandName === 'rmcommsg') {
+            await interaction.deferReply();
             const name = interaction.options.getString('name').toLowerCase();
 
             if (!customCommands[name]) {
-                return interaction.reply({ content: `找不到指令 \`!${name}\`，無法移除。`, ephemeral: true });
+                return interaction.editReply({ content: `找不到指令 \`!${name}\`，無法移除。` });
             }
 
             delete customCommands[name];
             fs.writeFileSync('./customCommands.json', JSON.stringify(customCommands, null, 2));
 
-            await interaction.reply(`🗑️ 已成功移除指令 \`!${name}\`。`);
+            await interaction.editReply(`🗑️ 已成功移除指令 \`!${name}\`。`);
             return;
         }
 
         // === 處理 /help 指令 (顯示指令說明) ===
         if (commandName === 'help') {
+             await interaction.deferReply({ ephemeral: true }); // 說明選單設為隱藏
             const helpMessage = 
                 `📚 **指令說明清單**\n\n` +
                 `**/ping** - 開始監控延遲 (機器人與 API)\n` +
@@ -186,14 +193,15 @@ client.on(Events.InteractionCreate, async interaction => {
                 `**/help** - 顯示此說明清單\n\n` +
                 `💡 *提示：你也可以使用 \`!commsg\`、\`!rmcommsg\` 和 \`!commsglist\` 等文字指令喔！*`;
 
-            return interaction.reply({ content: helpMessage, ephemeral: true });
+            return interaction.editReply({ content: helpMessage });
         }
     } catch (error) {
         console.error(`執行指令 ${commandName} 時發生錯誤:`, error);
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: '執行指令時發生內部錯誤！', ephemeral: true });
+        // 如果已經 defer 過了，要用 editReply，否則用 reply
+        if (interaction.deferred || interaction.replied) {
+            await interaction.followUp({ content: '執行指令時發生內部錯誤！', ephemeral: true }).catch(console.error);
         } else {
-            await interaction.reply({ content: '執行指令時發生內部錯誤！', ephemeral: true });
+            await interaction.reply({ content: '執行指令時發生內部錯誤！', ephemeral: true }).catch(console.error);
         }
     }
 });
