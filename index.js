@@ -153,15 +153,17 @@ client.on(Events.InteractionCreate, async interaction => {
             const commandList = Object.keys(customCommands);
 
             if (commandList.length === 0) {
-                return interaction.editReply('目前沒有任何自訂指令喔！試試看 `/commsg` 新增一個吧。');
+                await interaction.editReply('目前沒有任何自訂指令喔！試試看 `/commsg` 新增一個吧。');
+                return;
             }
 
             // 格式化輸出
             const description = commandList.map(name => `**!${name}** -> ${customCommands[name]}`).join('\n');
 
-            return interaction.editReply({
+            await interaction.editReply({
                 content: `📋 **目前已有的自訂指令列表：**\n\n${description}`
             });
+            return;
         }
 
         // === 處理 /rmcommsg 指令 (移除自訂指令) ===
@@ -170,7 +172,8 @@ client.on(Events.InteractionCreate, async interaction => {
             const name = interaction.options.getString('name').toLowerCase();
 
             if (!customCommands[name]) {
-                return interaction.editReply({ content: `找不到指令 \`!${name}\`，無法移除。` });
+                await interaction.editReply({ content: `找不到指令 \`!${name}\`，無法移除。` });
+                return;
             }
 
             delete customCommands[name];
@@ -193,15 +196,19 @@ client.on(Events.InteractionCreate, async interaction => {
                 `**/help** - 顯示此說明清單\n\n` +
                 `💡 *提示：你也可以使用 \`!commsg\`、\`!rmcommsg\` 和 \`!commsglist\` 等文字指令喔！*`;
 
-            return interaction.editReply({ content: helpMessage });
+            await interaction.editReply({ content: helpMessage });
+            return;
         }
     } catch (error) {
         console.error(`執行指令 ${commandName} 時發生錯誤:`, error);
-        // 如果已經 defer 過了，要用 editReply，否則用 reply
+        
+        // 如果已經 defer 過了，或是已經回覆過了，必須使用 followUp 或 editReply
         if (interaction.deferred || interaction.replied) {
-            await interaction.followUp({ content: '執行指令時發生內部錯誤！', ephemeral: true }).catch(console.error);
+            // 使用 followUp 發送一個新的 ephemeral 訊息告知錯誤
+            await interaction.followUp({ content: '執行指令時發生內部錯誤！', ephemeral: true }).catch(err => console.error('無法發送錯誤訊息:', err));
         } else {
-            await interaction.reply({ content: '執行指令時發生內部錯誤！', ephemeral: true }).catch(console.error);
+            // 如果還沒回覆，直接 reply
+            await interaction.reply({ content: '執行指令時發生內部錯誤！', ephemeral: true }).catch(err => console.error('無法發送錯誤訊息:', err));
         }
     }
 });
