@@ -72,7 +72,10 @@ client.on(Events.InteractionCreate, async interaction => {
                 try {
                     const startTimestamp = Date.now(); // 記錄開始編輯的時間
                     const apiPing = Math.round(client.ws.ping);
-                    const timestamp = new Date().toLocaleTimeString();
+                    const timestamp = new Date().toLocaleTimeString('zh-TW', { 
+                        timeZone: 'Asia/Taipei', 
+                        hour12: false 
+                    });
                     
                     // 編輯訊息，顯示上一次測量的機器人延遲 (如果是第一次則顯示 "計算中...")
                     const robotLatencyText = lastRoundtrip === 0 ? "計算中..." : `${lastRoundtrip}ms`;
