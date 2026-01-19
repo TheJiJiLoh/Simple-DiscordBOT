@@ -1,5 +1,5 @@
 // 引入必要的 discord.js 類別
-const { Client, Events, GatewayIntentBits, REST, Routes } = require('discord.js');
+const { Client, Events, GatewayIntentBits, REST, Routes, DiscordjsErrorCodes } = require('discord.js');
 // 引入 fs 以讀寫檔案
 const fs = require('fs');
 // 引入 express 建立健康檢查伺服器
