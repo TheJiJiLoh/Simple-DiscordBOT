@@ -1,78 +1,34 @@
+require('dotenv').config({ quiet: true });
+
 const { REST, Routes } = require('discord.js');
-require('dotenv').config();
+const { loadCommands } = require('./src/commands');
 
-const commands = [
-	{
-		name: 'ping',
-		description: '開始即時監控延遲 (每 5 秒更新)',
-	},
-	{
-		name: 'stop',
-		description: '停止 Ping 監控',
-	},
-	{
-		name: 'commsg',
-		description: '新增自訂指令',
-		options: [
-			{
-				name: 'name',
-				description: '指令名稱 (例如: hello)',
-				type: 3, // String
-				required: true,
-			},
-			{
-				name: 'response',
-				description: '機器人回覆的內容',
-				type: 3, // String
-				required: true,
-			},
-		],
-	},
-	{
-		name: 'commsglist',
-		description: '列出所有自訂指令',
-	},
-	{
-		name: 'rmcommsg',
-		description: '移除自訂指令',
-		options: [
-			{
-				name: 'name',
-				description: '要移除的指令名稱',
-				type: 3, // String
-				required: true,
-			},
-		],
-	},
-	{
-		name: 'help',
-		description: '顯示指令說明清單',
-	},
-];
+async function main() {
+    const { DISCORD_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
 
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    if (!DISCORD_TOKEN || !CLIENT_ID) {
+        console.error('❌ 請先在 .env 設定 DISCORD_TOKEN 與 CLIENT_ID。');
+        process.exitCode = 1;
+        return;
+    }
 
-(async () => {
-	try {
-		const guildId = process.env.GUILD_ID;
-		
-		if (guildId) {
-			console.log(`正在為伺服器 (ID: ${guildId}) 註冊指令... (立即生效)`);
-			await rest.put(
-				Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId),
-				{ body: commands },
-			);
-			console.log('成功註冊伺服器專用指令！');
-		} else {
-			console.log('正在註冊全域指令... (可能需要一小時生效)');
-			await rest.put(
-				Routes.applicationCommands(process.env.CLIENT_ID),
-				{ body: commands },
-			);
-			console.log('成功註冊全域指令！');
-		}
+    const commands = [...loadCommands().values()].map(command => command.data.toJSON());
+    const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
-	} catch (error) {
-		console.error(error);
-	}
-})();
+    try {
+        if (GUILD_ID) {
+            console.log(`正在為伺服器 (ID: ${GUILD_ID}) 註冊 ${commands.length} 個指令...（立即生效）`);
+            await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
+            console.log('✅ 成功註冊伺服器專用指令！');
+        } else {
+            console.log(`正在註冊 ${commands.length} 個全域指令...（可能需要一小時生效）`);
+            await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+            console.log('✅ 成功註冊全域指令！');
+        }
+    } catch (error) {
+        console.error('❌ 註冊指令失敗:', error);
+        process.exitCode = 1;
+    }
+}
+
+main();

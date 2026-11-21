@@ -1,16 +1,25 @@
 {
   "name": "discord-bot-demo",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.0.0",
+  "description": "A simple but extensible Discord bot with custom commands, utilities and moderation tools.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "deploy": "node deploy-commands.js",
+    "test": "node -e \"const { loadCommands } = require('./src/commands'); const commands = loadCommands(); console.log('Loaded', commands.size, 'commands:', [...commands.keys()].join(', '));\""
   },
-  "keywords": [],
+  "keywords": [
+    "discord",
+    "discord.js",
+    "bot"
+  ],
   "author": "JiJiLoh",
   "license": "MIT",
   "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "discord.js": "^14.25.1",
     "dotenv": "^17.2.3",
